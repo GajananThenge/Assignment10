@@ -54,7 +54,19 @@ NOTE:​ ​The​ ​solution​ ​shared​ ​through​ ​Github​ ​sho
 
 
 
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul 17 21:28:46 2018
 
+@author: hp-pc
+"""
+
+#a=train_set['wage_class'].astype('category')
+#a.cat.codes
+#dict( enumerate(a.cat.categories) )
+
+import numpy as np
+import pandas as pd
 def Label_encoder(df):
     df_labels = df.copy()
     num_cols=df.select_dtypes(exclude = [np.number,np.int16,np.bool,np.float32] )
@@ -64,42 +76,14 @@ def Label_encoder(df):
         df_labels[col] = df_labels[col].cat.codes
     return df_labels
 
-def normalize_data(X):
-    from sklearn.preprocessing import normalize
-    normalize_X = normalize(X)
-    return normalize_X
-    
-
-def data_preprocessing():
-    import numpy as np
-    import pandas as pd
-    try:
-        dataset =pd.read_csv('Assignment10.1_train_data.csv',header = None,na_values ='?')
-    
-    #    test_set =pd.read_csv('http://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test'
-    #                , skiprows=1, header=None)
-        col_labels = ['age', 'workclass', 'fnlwgt', 'education', 'education_num', 'marital_status',
-                      'occupation', 'relationship', 'race', 'sex','capital_gain', 'capital_loss', 'hours_per_week',
-                      'native_country','wage_class']
-        
-        dataset.columns = col_labels
-        dataset = Label_encoder(dataset)
-        
-        return dataset
-    except Exception as e:
-        print(e)
-
-
 def model_training(X_train,y_train):
     import pickle
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.neighbors import KNeighborsClassifier
+    import xgboost
     try:
-        rf_classifier=RandomForestClassifier(n_estimators=10,random_state=0)
-        rf_classifier.fit(X_train,y_train)
          # save the model 1 to disk
-         
-        classifier_model = KNeighborsClassifier(n_neighbors=5)
+        classifier_model = xgboost.XGBClassifier()
         classifier_model.fit(X_train,y_train)
         filename = 'classifier_model.sav'
         pickle.dump(classifier_model, open(filename, 'wb'))
@@ -108,12 +92,13 @@ def model_training(X_train,y_train):
         print("Error occurs during model training")
 
 def prediction(model_path,X_test):
+    import pickle
     model = pickle.load(open(model_path, 'rb'))
     y_pred= model.predict(X_test)
     return y_pred
 
 def classifier_accuracy(y_test,y_pred):
-    
+    from sklearn.metrics import confusion_matrix,accuracy_score,classification_report
      #Accuracy and confusion matrix
     cm= confusion_matrix(y_test,y_pred)
     acc=accuracy_score(y_test,y_pred)
@@ -124,24 +109,45 @@ def classifier_accuracy(y_test,y_pred):
     print('Accuracy : {} '.format(acc))
     print('Class Report : {}'.format(class_report))
 
+def get_data():
+    train_set =pd.read_csv('http://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data', header = None)
+    test_set =pd.read_csv('http://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.test', skiprows = 1, header = None)
+    #test_set =(pd.read_csv('Assignment10.1_test_data.csv', skiprows = 1, header = None))
+    col_labels = ['age', 'workclass', 'fnlwgt', 'education', 'education_num',
+                  'marital_status','occupation','relationship', 'race', 'sex', 'capital_gain', 
+                  'capital_loss', 'hours_per_week','native_country', 'wage_class']
+    train_set.columns = col_labels
+    test_set.columns = col_labels
+    return train_set,test_set
+
+def data_preprocessing(train_set,test_set):
+    
+    #train_set['wage_class'] = np.where(train_set['wage_class']=='>50k',1,0)
+    label_train_set= Label_encoder(train_set)
+
+    #test_set['wage_class'] = np.where(test_set['wage_class']=='>50k',1,0)
+    label_test_set= Label_encoder(test_set)
+    return label_train_set,label_test_set
+
+def get_train_test_data(train_set,test_set):
+    X_train = train_set.iloc[:,:-1].values
+    y_train = train_set.iloc[:,-1].values
+    
+    X_test = test_set.iloc[:,:-1].values
+    y_test = test_set.iloc[:,-1].values
+    
+    return X_train,y_train,X_test,y_test
 
 if __name__ == "__main__":
     import pandas as pd
     import numpy as np
     from sklearn.metrics import confusion_matrix,accuracy_score,classification_report
     import pickle
-    train_set= data_preprocessing()
-    X= train_set.iloc[:,:-1]
-    y= train_set.iloc[:,-1]
-    
-    from sklearn.model_selection import train_test_split
-    X_train,X_test,y_train,y_test =train_test_split(X,y,test_size=.2,random_state=0)
-    
+    train_set,test_set=get_data()
+    dp_train_set,dp_test_set=data_preprocessing(train_set,test_set)
+    X_train,y_train,X_test,y_test=get_train_test_data(dp_train_set,dp_test_set)
     model_path = model_training(X_train,y_train)
     y_pred = prediction(model_path,X_test)
     classifier_accuracy(y_test,y_pred)
     
-        
-   
-#data_preprocessing()
 
