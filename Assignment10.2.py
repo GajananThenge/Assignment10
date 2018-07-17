@@ -21,3 +21,38 @@ with open("nba_2013.csv", 'r') as csvfile:
 nba = pandas.read_csv(csvfile)
 
 NOTE:​ ​The​ ​solution​ ​shared​ ​through​ ​Github​ ​should​ ​contain​ ​the​ ​source​ ​code​ ​used​ ​and​'''
+
+
+try:
+    import pandas
+    from sklearn.neighbors import KNeighborsRegressor
+    from sklearn.model_selection import train_test_split
+    
+    with open("nba_2013.csv", 'r') as csvfile:
+        nba = pandas.read_csv(csvfile,usecols=['player','pos','g','gs','pts'])
+        
+    X = nba.loc[:,['pos','g','gs']]
+    y= nba.loc[:,'pts']
+    
+    #obj_col = list(nba.select_dtypes(include=['object']).columns)
+    num_col = list(X.select_dtypes(include=['int64','float64']).columns)
+    
+    #One hot encoding
+    X=pandas.get_dummies(X,dummy_na=False,drop_first=True,columns=['pos'])
+    
+    #Splitting dataset
+    X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=.25,random_state=0)
+    
+    #KNN algorithm    
+    regressor= KNeighborsRegressor()
+    regressor.fit(X_train,y_train)
+    
+    #Prediction
+    y_pred= regressor.predict(X_test)
+    
+    #Check Accuracy Score
+    regressor.score(X_train,y_train)
+    regressor.score(X_test,y_test)
+
+except Exception as e:
+    print(e)
